@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <title>Sainsbury's test</title>
+
+    <!-- Bootstrap -->
+    <link href="css/bootstrap.css" rel="stylesheet">
+    <script src="js/underscore-min.js"></script>
+
+    <script type="text/javascript">
+        
+        var AbstractAdapter, LocalStorageAdapter, CookieAdapter, storage, cb, lsa, supports_html5_storage,
+        
+        // Extend class function
+        extend = function(child, parent) { for (var key in parent) { if (hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; },
+        hasProp = {}.hasOwnProperty;
+
+
+        function supports_html5_storage() {
+          try {
+            return 'localStorage' in window && window['localStorage'] !== null;
+          } catch (e) {
+            return false;
+          }
+        };
+
+
+        AbstractAdapter = (function() {
+          function AbstractAdapter() {}
+
+          AbstractAdapter.prototype.set = function(key, value) {
+            throw new Error('Method not implemented');
+          };
+
+          AbstractAdapter.prototype.get = function(key) {
+            throw new Error('Method not implemented');
+          };
+
+          return AbstractAdapter;
+
+        })();
+
+
+        LocalStorageAdapter = (function(superClass) {
+          extend(LocalStorageAdapter, superClass);
+
+          function LocalStorageAdapter() {
+            return LocalStorageAdapter.__super__.constructor.apply(this, arguments);
+          }
+
+          LocalStorageAdapter.prototype.set = function(key, value) {
+            localStorage.setItem(key, value);
+          };
+
+          LocalStorageAdapter.prototype.get = function(key) {
+            return localStorage.getItem(key);
+          };
+
+          return LocalStorageAdapter;
+
+        })(AbstractAdapter);
+
+
+        CookieAdapter = (function(superClass) {
+          extend(CookieAdapter, superClass);
+
+          function CookieAdapter() {
+            return CookieAdapter.__super__.constructor.apply(this, arguments);
+          }
+
+          CookieAdapter.prototype.set = function(key, value) {
+            var d = new Date();
+            d.setTime(d.getTime() + (exdays*24*60*60*1000));
+            var expires = "expires="+d.toUTCString();
+            document.cookie = cname + "=" + cvalue + "; " + expires;
+          };
+
+          CookieAdapter.prototype.get = function(key) {
+            var name = cname + "=";
+            var ca = document.cookie.split(';');
+            for(var i=0; i<ca.length; i++) {
+                var c = ca[i];
+                while (c.charAt(0)==' ') c = c.substring(1);
+                if (c.indexOf(name) == 0) return c.substring(name.length, c.length);
+            }
+            return null;
+          };
+
+          return CookieAdapter;
+
+        })(AbstractAdapter);
+
+
+        if (supports_html5_storage()) {
+          storage = new LocalStorageAdapter;
+        } else {
+          storage = new CookieAdapter;
+        }
+
+        // Would be better to replace by Handlebars or Moustache template engine
+        function createImageElement(url) {
+          var element = document.createElement('div');
+          element.className = 'col-xs-6 col-md-3';
+          
+          var anchor = document.createElement('a');
+          anchor.dataset.url = url;
+          anchor.className = 'thumbnail';
+          if (storage.get(url) !== null) {
+            anchor.className += ' active';
+          }
+          
+          var image = document.createElement('img');
+          image.src = url;
+          
+          anchor.appendChild(image);
+          element.appendChild(anchor);
+          
+          return element;
+        }
+
+        function renderImages(images) {
+          _.each(images, function (image) {
+            var container = document.getElementById('container');
+            var imageElement = document.createElement('img');
+            imageElement.src = image.media.m;
+            container.appendChild(createImageElement(image.media.m));
+          });
+        }
+
+        function fireUpListener() {
+          $('.thumbnail').click(function () {
+            this.className += ' active';
+            storage.set(this.dataset.url, true);
+          });
+        }
+
+        function cb(data) {
+          renderImages(data.items);
+          fireUpListener();
+        };
+
+
+        (function() {
+          var script, tags;
+          tags = 'london';
+          script = document.createElement('script');
+          script.src = 'http://api.flickr.com/services/feeds/photos_public.gne?format=json&jsoncallback=cb&tags=' + tags;
+          document.head.appendChild(script);
+        })();
+
+    </script>
+
+
+  </head>
+  <body>
+
+    <h1>Flickr feed for tag "london"</h1>
+
+    <div id="container"></div>
+
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.2/jquery.min.js"></script>
+    <script src="js/bootstrap.min.js"></script>
+  </body>
+</html>
